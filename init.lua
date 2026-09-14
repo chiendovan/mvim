@@ -1,4 +1,7 @@
-local directory_path = "/Users/chiendv/.config/myvim/lua/"
+local config_dir = vim.fn.fnamemodify(debug.getinfo(1, 'S').source:sub(2), ':p:h')
+dofile(config_dir .. "/plugin/indent_guide.lua")
+
+local directory_path = "/Users/chiendv/.config/mvim/lua/"
 package.path = package.path .. ";" .. directory_path .. "?.lua"
 local function require_all_files_in_directory(directory)
     local files = vim.fn.readdir(directory)

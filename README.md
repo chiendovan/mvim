@@ -1,37 +1,38 @@
 # myvim
 
-Neovim config cá nhân.
+Personal Neovim configuration.
 
-## Cấu trúc
+## Structure
 
 ```
 ~/.config/myvim/
-├── init.lua          # Entry point — tự động load toàn bộ file trong lua/
+├── init.lua               # Entry point — auto-loads all files in lua/
 ├── lua/
-│   ├── base.lua      # Editor settings (encoding, indent, search, clipboard…)
-│   ├── plugins.lua   # Quản lý plugin (packer.nvim)
-│   ├── nerdtree.lua  # File explorer keymap
-│   └── theme.lua     # Colorscheme
+│   ├── base.lua           # Editor settings (encoding, indent, search, clipboard…
+│   ├── plugins.lua        # Plugin management (packer.nvim)
+│   ├── nerdtree.lua       # File explorer keymap
+│   ├── indent_guide.lua   # Custom indent guides & scope highlighting
+│   └── theme.lua          # Colorscheme
 └── plugin/
     └── theme.lua
 ```
 
-## Plugin
+## Plugins
 
-Quản lý bằng [packer.nvim](https://github.com/wbthomason/packer.nvim).
+Managed with [packer.nvim](https://github.com/wbthomason/packer.nvim).
 
-| Plugin | Mục đích |
-|--------|----------|
+| Plugin | Purpose |
+|--------|---------|
 | [neo-tree.nvim](https://github.com/nvim-neo-tree/neo-tree.nvim) | File explorer |
 | [tokyonight.nvim](https://github.com/folke/tokyonight.nvim) | Colorscheme |
 
-## Cài đặt
+## Installation
 
 ```bash
 git clone <repo-url> ~/.config/myvim
 ```
 
-Mở Neovim và chạy:
+Open Neovim and run:
 
 ```
 :PackerSync
@@ -39,12 +40,12 @@ Mở Neovim và chạy:
 
 ## Keymaps
 
-| Phím | Chức năng |
-|------|-----------|
+| Key | Action |
+|-----|--------|
 | `<Space>e` | Toggle file explorer |
 
-## Yêu cầu
+## Requirements
 
 - Neovim >= 0.8
-- [packer.nvim](https://github.com/wbthomason/packer.nvim) đã được cài
-- Font hỗ trợ icon (Nerd Font) để hiển thị devicons
+- [packer.nvim](https://github.com/wbthomason/packer.nvim) installed
+- A Nerd Font for icon rendering

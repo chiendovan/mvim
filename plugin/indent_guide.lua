@@ -14,10 +14,8 @@ M.config = {
   char                  = '│',
   scope_char            = '│',
   debounce_ms           = 50,
-  -- total animation duration in ms; spread across all steps with "out" easing
-  -- (lines near cursor appear first and quickly, edges slow down)
-  animation_duration_ms = 150,
-  -- buftypes and filetypes where the plugin is completely disabled
+  animation_step_delay_ms = 20,
+  try_as_border = true,
   buftype_exclude = { 'terminal', 'nofile', 'quickfix', 'prompt' },
   filetype_exclude = { 'neo-tree', 'NvimTree', 'help', 'man', 'packer', 'lspinfo', 'checkhealth', '' },
 }
@@ -81,8 +79,19 @@ end
 
 -- ── Scope detection ──────────────────────────────────────────────────────────
 
+local function border_correct(lnum)
+  local prev_indent = get_line_indent(lnum - 1)
+  local cur_indent  = get_line_indent(lnum)
+  local next_indent = get_line_indent(lnum + 1)
+
+  if prev_indent <= cur_indent and next_indent <= cur_indent then return lnum end
+  if prev_indent <= next_indent then return lnum + 1 end
+  return lnum - 1
+end
+
 local function get_scope(bufnr)
-  local lnum   = vim.api.nvim_win_get_cursor(0)[1]
+  local lnum = vim.api.nvim_win_get_cursor(0)[1]
+  if M.config.try_as_border then lnum = border_correct(lnum) end
   local prev   = vim.fn.prevnonblank(lnum)
   if prev == 0 then return nil end
   local indent = vim.fn.indent(prev)
@@ -130,21 +139,10 @@ local function scope_intersects(s1, s2)
 end
 
 -- ── Animation ────────────────────────────────────────────────────────────────
---
--- Port of mini.indentscope's draw_indicator_animation:
--- - "out" linear easing: delay_per_step = delta * step_number
---   → lines close to cursor get tiny delay (< 1ms → drawn synchronously in same frame)
---   → lines far from cursor get larger delay (drawn via timer)
--- - wait_time accumulates fractional ms; only uses the timer once >= 1ms
---   → avoids per-step redraws for fast initial steps
 
-local function make_anim_fn(duration_ms, n_steps)
-  if n_steps == 0 or duration_ms == 0 then return function() return 0 end end
-  -- "out" linear: delay(s) = delta * s
-  -- sum_{s=1}^{n} delta*s = delta * n*(n+1)/2 = total_duration
-  -- => delta = 2 * duration / (n * (n+1))
-  local delta = 2 * duration_ms / (n_steps * (n_steps + 1))
-  return function(s) return delta * s end
+local function make_anim_fn(step_delay_ms)
+  if step_delay_ms == 0 then return function() return 0 end end
+  return function() return step_delay_ms end
 end
 
 local function animate_scope(scope, immediate)
@@ -158,8 +156,8 @@ local function animate_scope(scope, immediate)
   local wait_time = 0
   local event_id  = state.event_id
 
-  local duration = immediate and 0 or M.config.animation_duration_ms
-  local anim_fn  = make_anim_fn(duration, n_steps)
+  local step_delay = immediate and 0 or M.config.animation_step_delay_ms
+  local anim_fn    = make_anim_fn(step_delay)
 
   local draw_step
   draw_step = vim.schedule_wrap(function()
@@ -189,7 +187,6 @@ local function animate_scope(scope, immediate)
   end)
 
   state.draw_status = 'drawing'
-  -- large initial timeout so the timer never auto-fires; we drive it manually
   state.timer:start(10000000, 0, draw_step)
   draw_step()
 end
@@ -214,14 +211,17 @@ end
 local function on_cursor_moved()
   local bufnr = vim.api.nvim_get_current_buf()
   if should_skip(bufnr) then return end
+
+  local scope = get_scope(bufnr)
+  if state.draw_status ~= 'none' and scope_equal(scope, state.current_scope) then return end
+  local immediate = state.draw_status ~= 'none' and scope_intersects(scope, state.current_scope)
+  local delay      = immediate and 0 or M.config.debounce_ms
+
   state.event_id = state.event_id + 1
   local event_id = state.event_id
 
   vim.defer_fn(function()
     if state.event_id ~= event_id then return end
-    local scope = get_scope(bufnr)
-    if scope_equal(scope, state.current_scope) then return end
-    local immediate = scope_intersects(scope, state.current_scope)
     state.current_scope = scope or {}
     if scope then
       animate_scope(scope, immediate)
@@ -230,7 +230,7 @@ local function on_cursor_moved()
       vim.api.nvim_buf_clear_namespace(bufnr, ns_scope, 0, -1)
       state.draw_status = 'none'
     end
-  end, M.config.debounce_ms)
+  end, delay)
 end
 
 local function on_leave()
