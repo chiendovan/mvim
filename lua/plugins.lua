@@ -13,5 +13,14 @@ return require('packer').startup(function(use)
     }
   })
   use {'folke/tokyonight.nvim', config = 'vim.cmd[[colorscheme tokyonight-storm]]'}
+  use({
+    "ibhagwan/fzf-lua",
+    requires = { "nvim-tree/nvim-web-devicons" },
+  })
+  use({
+    "nvim-treesitter/nvim-treesitter",
+    branch = "master",
+    run = ":TSUpdate",
+  })
 end)
 
